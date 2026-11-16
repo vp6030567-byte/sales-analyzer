@@ -1,257 +1,219 @@
+
 import pandas as pd
 import matplotlib.pyplot as plt
+from datetime import datetime
 
+COLUMNS = ["Date", "Product", "Region", "Quantity", "Amount"]
 
-# ==========================================
-# 1. TAKE SALES DATA FROM USER
-# ==========================================
 
 def get_sales_data():
+    records = []
+    seen_records = set()
+
     while True:
         try:
-            n = int(input("\nHow many sales records do you want to enter? "))
-            if n > 0:
+            rows = int(input("\nHow many rows of sales data do you want to enter? "))
+            if rows > 0:
                 break
-            print("Please enter a positive number.")
+            print("Please enter a number greater than 0.")
         except ValueError:
             print("Please enter a valid whole number.")
 
-    records = []
+    for i in range(1, rows + 1):
+        print(f"\nEnter details for Row {i}:")
 
-    for i in range(n):
-        print(f"\n========== RECORD {i + 1} ==========")
+        date = input("Date (YYYY-MM-DD): ").strip()
+        product = input("Product: ").strip()
+        region = input("Region: ").strip()
+        quantity = input("Quantity: ").strip()
+        amount = input("Amount: ").strip()
 
-        while True:
-            date = input("Enter Date (YYYY-MM-DD): ").strip()
-            parsed_date = pd.to_datetime(date, errors="coerce")
-            if pd.notna(parsed_date):
-                break
-            print("Invalid date. Please use YYYY-MM-DD.")
+        # Validate date
+        try:
+            datetime.strptime(date, "%Y-%m-%d")
+        except ValueError:
+            print(f"Row {i} skipped: invalid Date '{date}'")
+            continue
 
-        while True:
-            product = input("Enter Product Name: ").strip()
-            if product:
-                break
-            print("Product name cannot be empty.")
+        # Validate product
+        if not product:
+            print(f"Row {i} skipped: invalid Product '{product}'")
+            continue
 
-        while True:
-            region = input("Enter Region: ").strip()
-            if region:
-                break
-            print("Region cannot be empty.")
+        # Validate region
+        if not region:
+            print(f"Row {i} skipped: invalid Region '{region}'")
+            continue
 
-        while True:
-            try:
-                quantity = int(input("Enter Quantity: "))
-                if quantity > 0:
-                    break
-                print("Quantity must be greater than zero.")
-            except ValueError:
-                print("Enter a valid whole number.")
+        # Validate quantity
+        try:
+            quantity_value = int(quantity)
+            if quantity_value <= 0:
+                print(f"Row {i} skipped: invalid Quantity '{quantity}'")
+                continue
+        except ValueError:
+            print(f"Row {i} skipped: invalid Quantity '{quantity}'")
+            continue
 
-        while True:
-            try:
-                amount = float(input("Enter Amount: "))
-                if amount >= 0:
-                    break
-                print("Amount cannot be negative.")
-            except ValueError:
-                print("Enter a valid amount.")
+        # Validate amount
+        try:
+            amount_value = float(amount)
+            if amount_value < 0:
+                print(f"Row {i} skipped: invalid Amount '{amount}'")
+                continue
+        except ValueError:
+            print(f"Row {i} skipped: invalid Amount '{amount}'")
+            continue
 
-        records.append({
-            "Date": parsed_date,
+        record = {
+            "Date": date,
             "Product": product,
             "Region": region,
-            "Quantity": quantity,
-            "Amount": amount
-        })
+            "Quantity": quantity_value,
+            "Amount": amount_value
+        }
 
-    df = pd.DataFrame(records).drop_duplicates().reset_index(drop=True)
+        # Check duplicate records
+        record_key = tuple(record[col] for col in COLUMNS)
 
-    print("\nSales data entered successfully!")
-    print(f"Valid unique records: {len(df)}")
-    print("\n========== ENTERED SALES DATA ==========")
-    print(df.to_string(index=False))
-    return df
+        if record_key in seen_records:
+            print(f"Row {i} skipped: Duplicate record")
+            continue
+
+        seen_records.add(record_key)
+        records.append(record)
+
+    return pd.DataFrame(records, columns=COLUMNS)
 
 
-# ==========================================
-# 2. SELECT NUMBER OF ROWS TO ANALYZE
-# ==========================================
+def choose_rows(df):
+    if df.empty:
+        print("\nNo valid sales data available.")
+        return df
 
-def get_data_by_row_count(df):
     while True:
-        print("\nHow many rows do you want to analyze?")
-        print("Press Enter to analyze the complete dataset.")
-        user_input = input("Enter number of rows: ").strip()
+        choice = input(
+            "\nEnter number of rows to analyze "
+            "(Press Enter for all rows): "
+        ).strip()
 
-        if user_input == "":
-            print("\nAnalyzing complete dataset...")
-            return df.copy()
+        if choice == "":
+            return df
 
         try:
-            rows = int(user_input)
-            if rows <= 0:
-                print("Enter a positive number.")
-                continue
-            if rows > len(df):
-                print(f"Only {len(df)} records are available.")
-                print("Analyzing complete dataset.")
-                return df.copy()
+            count = int(choice)
 
-            print(f"\nAnalyzing the first {rows} records...")
-            return df.head(rows).copy()
+            if count <= 0:
+                print("Enter a number greater than 0.")
+            elif count > len(df):
+                print(f"Only {len(df)} valid rows are available.")
+            else:
+                return df.head(count)
+
         except ValueError:
-            print("Invalid input! Enter a number or press Enter.")
+            print("Please enter a valid whole number.")
 
 
-# ==========================================
-# 3. SALES SUMMARY
-# ==========================================
-
-def summary(df):
+def sales_summary(df):
     if df.empty:
-        print("No data available.")
+        print("\nNo valid sales data available.")
         return
 
     total_revenue = df["Amount"].sum()
-    total_transactions = len(df)
-    total_units = df["Quantity"].sum()
+    transactions = len(df)
 
-    print("\n========== SALES SUMMARY ==========")
-    print(f"Total Revenue      : {total_revenue:.2f}")
-    print(f"Total Transactions : {total_transactions}")
-    print(f"Total Units Sold   : {total_units}")
-
-    print("\n========== TOP 5 PRODUCTS ==========")
-    top_products = (
-        df.groupby("Product")["Quantity"]
-        .sum()
-        .sort_values(ascending=False)
-        .head(5)
+    print(
+        f"\nTotal Revenue: {total_revenue:g} "
+        f"| Transactions: {transactions}"
     )
-    print(top_products)
 
-    plt.figure(figsize=(9, 5))
-    top_products.plot(
-        kind="bar",
-        title="Top 5 Best-Selling Products",
-        xlabel="Product",
-        ylabel="Quantity Sold"
-    )
-    plt.tight_layout()
-    plt.show()
+    print(f"Total Units Sold: {df['Quantity'].sum()}")
 
-    daily_revenue = df.groupby("Date")["Amount"].sum().sort_index()
-    plt.figure(figsize=(9, 5))
-    daily_revenue.plot(
-        kind="line",
-        marker="o",
-        title="Daily Sales Revenue",
-        xlabel="Date",
-        ylabel="Revenue"
-    )
-    plt.tight_layout()
-    plt.show()
-
-
-# ==========================================
-# 4. PRODUCT AND REGION ANALYSIS
-# ==========================================
 
 def group_analysis(df):
     if df.empty:
-        print("No data available.")
+        print("\nNo valid sales data available.")
         return
 
-    print("\n========== PRODUCT-WISE SALES ==========")
-    product_sales = (
-        df.groupby("Product")["Amount"]
-        .sum()
-        .sort_values(ascending=False)
-    )
+    print("\n--- Sales by Product ---")
+    product_sales = df.groupby("Product")["Amount"].sum()
     print(product_sales)
 
-    print("\n========== REGION-WISE SALES ==========")
-    region_sales = (
-        df.groupby("Region")["Amount"]
-        .sum()
-        .sort_values(ascending=False)
-    )
+    print("\n--- Sales by Region ---")
+    region_sales = df.groupby("Region")["Amount"].sum()
     print(region_sales)
 
-    print("\n========== PRODUCT AND REGION SALES ==========")
-    product_region = df.pivot_table(
+    print("\n--- Product and Region Analysis ---")
+    pivot = pd.pivot_table(
+        df,
+        values="Amount",
         index="Product",
         columns="Region",
-        values="Amount",
         aggfunc="sum",
         fill_value=0
     )
-    print(product_region)
+    print(pivot)
 
-    plt.figure(figsize=(9, 5))
-    region_sales.plot(
-        kind="bar",
-        title="Region-wise Sales",
-        xlabel="Region",
-        ylabel="Revenue"
-    )
-    plt.tight_layout()
-    plt.show()
-
-    product_region.plot(
-        kind="line",
-        marker="o",
-        figsize=(9, 5),
-        title="Product Sales Across Regions"
-    )
+    # Product sales chart
+    product_sales.plot(kind="bar", title="Revenue by Product")
     plt.xlabel("Product")
     plt.ylabel("Revenue")
     plt.tight_layout()
     plt.show()
 
+    # Region sales chart
+    region_sales.plot(
+        kind="bar",
+        title="Revenue by Region"
+    )
+    plt.xlabel("Region")
+    plt.ylabel("Revenue")
+    plt.tight_layout()
+    plt.show()
 
-# ==========================================
-# 5. MAIN MENU
-# ==========================================
 
 def main():
-    print("======================================")
-    print("         SALES DATA ANALYZER")
-    print("======================================")
+    print("================================")
+    print("       SALES DATA ANALYZER")
+    print("================================")
+
+    # Enter initial data before the main menu
+    df = get_sales_data()
 
     while True:
-        # Start each session by collecting fresh sales records.
-        df = get_sales_data()
+        print("\n========== MAIN MENU ==========")
+        print("1. Sales Summary")
+        print("2. Group by Product and Region")
+        print("3. Enter New Sales Data")
+        print("4. Exit")
 
-        while True:
-            print("\n========== MAIN MENU ==========")
-            print("1. Sales Summary")
-            print("2. Group by Product and Region")
-            print("3. Enter New Sales Data")
-            print("4. Exit")
+        choice = input("\nEnter your choice: ").strip()
 
-            choice = input("\nEnter your choice: ").strip()
+        if choice == "1":
+            selected_df = choose_rows(df)
+            sales_summary(selected_df)
 
-            if choice == "1":
-                selected_data = get_data_by_row_count(df)
-                summary(selected_data)
+        elif choice == "2":
+            selected_df = choose_rows(df)
+            group_analysis(selected_df)
 
-            elif choice == "2":
-                selected_data = get_data_by_row_count(df)
-                group_analysis(selected_data)
+        elif choice == "3":
+            new_data = get_sales_data()
 
-            elif choice == "3":
-                print("\nStarting a new data-entry session...")
-                break
+            if not new_data.empty:
+                df = pd.concat(
+                    [df, new_data],
+                    ignore_index=True
+                ).drop_duplicates()
 
-            elif choice == "4":
-                print("\nThank you for using Sales Data Analyzer!")
-                return
+            print("\nNew data entry completed.")
 
-            else:
-                print("Invalid choice! Please select 1, 2, 3, or 4.")
+        elif choice == "4":
+            print("\nThank you for using Sales Data Analyzer!")
+            break
+
+        else:
+            print("\nInvalid choice. Please select 1 to 4.")
 
 
 if __name__ == "__main__":

@@ -6,6 +6,7 @@ from datetime import datetime
 COLUMNS = ["Date", "Product", "Region", "Quantity", "Amount"]
 
 
+# 1. Enter Sales Data
 def get_sales_data():
     records = []
     seen_records = set()
@@ -28,24 +29,20 @@ def get_sales_data():
         quantity = input("Quantity: ").strip()
         amount = input("Amount: ").strip()
 
-        # Validate date
         try:
             datetime.strptime(date, "%Y-%m-%d")
         except ValueError:
             print(f"Row {i} skipped: invalid Date '{date}'")
             continue
 
-        # Validate product
         if not product:
             print(f"Row {i} skipped: invalid Product '{product}'")
             continue
 
-        # Validate region
         if not region:
             print(f"Row {i} skipped: invalid Region '{region}'")
             continue
 
-        # Validate quantity
         try:
             quantity_value = int(quantity)
             if quantity_value <= 0:
@@ -55,7 +52,6 @@ def get_sales_data():
             print(f"Row {i} skipped: invalid Quantity '{quantity}'")
             continue
 
-        # Validate amount
         try:
             amount_value = float(amount)
             if amount_value < 0:
@@ -73,7 +69,6 @@ def get_sales_data():
             "Amount": amount_value
         }
 
-        # Check duplicate records
         record_key = tuple(record[col] for col in COLUMNS)
 
         if record_key in seen_records:
@@ -86,6 +81,7 @@ def get_sales_data():
     return pd.DataFrame(records, columns=COLUMNS)
 
 
+# 2. Select Number of Rows
 def choose_rows(df):
     if df.empty:
         print("\nNo valid sales data available.")
@@ -114,6 +110,28 @@ def choose_rows(df):
             print("Please enter a valid whole number.")
 
 
+# 3. Best Selling Product
+def best_selling_product(df):
+    if df.empty:
+        print("\nNo sales data available.")
+        return
+
+    product_sales = df.groupby("Product")["Quantity"].sum()
+
+    highest_sales = product_sales.max()
+
+    best_products = product_sales[
+        product_sales == highest_sales
+    ]
+
+    print("\n--- BEST SELLING PRODUCT ---")
+
+    for product, quantity in best_products.items():
+        print(f"Product: {product}")
+        print(f"Total Quantity Sold: {quantity}")
+
+
+# 4. Sales Summary
 def sales_summary(df):
     if df.empty:
         print("\nNo valid sales data available.")
@@ -122,14 +140,16 @@ def sales_summary(df):
     total_revenue = df["Amount"].sum()
     transactions = len(df)
 
-    print(
-        f"\nTotal Revenue: {total_revenue:g} "
-        f"| Transactions: {transactions}"
-    )
-
+    print("\n--- SALES SUMMARY ---")
+    print(f"Total Revenue: {total_revenue:g}")
+    print(f"Transactions: {transactions}")
     print(f"Total Units Sold: {df['Quantity'].sum()}")
 
+    # Display best-selling product
+    best_selling_product(df)
 
+
+# 5. Group Analysis
 def group_analysis(df):
     if df.empty:
         print("\nNo valid sales data available.")
@@ -154,14 +174,17 @@ def group_analysis(df):
     )
     print(pivot)
 
-    # Product sales chart
-    product_sales.plot(kind="bar", title="Revenue by Product")
+    # Product Sales Chart
+    product_sales.plot(
+        kind="bar",
+        title="Revenue by Product"
+    )
     plt.xlabel("Product")
     plt.ylabel("Revenue")
     plt.tight_layout()
     plt.show()
 
-    # Region sales chart
+    # Region Sales Chart
     region_sales.plot(
         kind="bar",
         title="Revenue by Region"
@@ -172,12 +195,12 @@ def group_analysis(df):
     plt.show()
 
 
+# 6. Main Menu
 def main():
     print("================================")
     print("       SALES DATA ANALYZER")
     print("================================")
 
-    # Enter initial data before the main menu
     df = get_sales_data()
 
     while True:
@@ -205,8 +228,6 @@ def main():
                     [df, new_data],
                     ignore_index=True
                 ).drop_duplicates()
-
-            print("\nNew data entry completed.")
 
         elif choice == "4":
             print("\nThank you for using Sales Data Analyzer!")

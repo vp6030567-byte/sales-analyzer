@@ -11,19 +11,20 @@ def get_sales_data():
     records = []
     seen_records = set()
 
-    while True:
-        try:
-            rows = int(input("\nHow many rows of sales data do you want to enter? "))
-            if rows > 0:
-                break
-            print("Please enter a number greater than 0.")
-        except ValueError:
-            print("Please enter a valid whole number.")
+    print("\nEnter sales data.")
+    print("Press Enter without entering a date to finish.")
 
-    for i in range(1, rows + 1):
+    i = 1
+
+    while True:
         print(f"\nEnter details for Row {i}:")
 
         date = input("Date (YYYY-MM-DD): ").strip()
+
+        # Stop data entry when date is blank
+        if not date:
+            break
+
         product = input("Product: ").strip()
         region = input("Region: ").strip()
         quantity = input("Quantity: ").strip()
@@ -33,32 +34,35 @@ def get_sales_data():
             datetime.strptime(date, "%Y-%m-%d")
         except ValueError:
             print(f"Row {i} skipped: invalid Date '{date}'")
+            i += 1
             continue
 
         if not product:
             print(f"Row {i} skipped: invalid Product '{product}'")
+            i += 1
             continue
 
         if not region:
             print(f"Row {i} skipped: invalid Region '{region}'")
+            i += 1
             continue
 
         try:
             quantity_value = int(quantity)
             if quantity_value <= 0:
-                print(f"Row {i} skipped: invalid Quantity '{quantity}'")
-                continue
+                raise ValueError
         except ValueError:
             print(f"Row {i} skipped: invalid Quantity '{quantity}'")
+            i += 1
             continue
 
         try:
             amount_value = float(amount)
             if amount_value < 0:
-                print(f"Row {i} skipped: invalid Amount '{amount}'")
-                continue
+                raise ValueError
         except ValueError:
             print(f"Row {i} skipped: invalid Amount '{amount}'")
+            i += 1
             continue
 
         record = {
@@ -73,10 +77,12 @@ def get_sales_data():
 
         if record_key in seen_records:
             print(f"Row {i} skipped: Duplicate record")
+            i += 1
             continue
 
         seen_records.add(record_key)
         records.append(record)
+        i += 1
 
     return pd.DataFrame(records, columns=COLUMNS)
 
@@ -117,7 +123,6 @@ def best_selling_product(df):
         return
 
     product_sales = df.groupby("Product")["Quantity"].sum()
-
     highest_sales = product_sales.max()
 
     best_products = product_sales[
@@ -145,7 +150,6 @@ def sales_summary(df):
     print(f"Transactions: {transactions}")
     print(f"Total Units Sold: {df['Quantity'].sum()}")
 
-    # Display best-selling product
     best_selling_product(df)
 
 

@@ -11,60 +11,68 @@ def get_sales_data():
     records = []
     seen_records = set()
 
-    print("\nEnter sales data.")
-    print("Press Enter without entering a date to finish.")
-
-    i = 1
-
     while True:
+        try:
+            rows = int(input("\nHow many rows of sales data do you want to enter? "))
+
+            if rows > 0:
+                break
+
+            print("Please enter a number greater than 0.")
+
+        except ValueError:
+            print("Please enter a valid whole number.")
+
+    for i in range(1, rows + 1):
+
         print(f"\nEnter details for Row {i}:")
 
         date = input("Date (YYYY-MM-DD): ").strip()
-
-        # Stop data entry when date is blank
-        if not date:
-            break
-
         product = input("Product: ").strip()
         region = input("Region: ").strip()
         quantity = input("Quantity: ").strip()
         amount = input("Amount: ").strip()
 
+        # Validate Date
         try:
             datetime.strptime(date, "%Y-%m-%d")
         except ValueError:
             print(f"Row {i} skipped: invalid Date '{date}'")
-            i += 1
             continue
 
+        # Validate Product
         if not product:
             print(f"Row {i} skipped: invalid Product '{product}'")
-            i += 1
             continue
 
+        # Validate Region
         if not region:
             print(f"Row {i} skipped: invalid Region '{region}'")
-            i += 1
             continue
 
+        # Validate Quantity
         try:
             quantity_value = int(quantity)
+
             if quantity_value <= 0:
                 raise ValueError
+
         except ValueError:
             print(f"Row {i} skipped: invalid Quantity '{quantity}'")
-            i += 1
             continue
 
+        # Validate Amount
         try:
             amount_value = float(amount)
+
             if amount_value < 0:
                 raise ValueError
+
         except ValueError:
             print(f"Row {i} skipped: invalid Amount '{amount}'")
-            i += 1
             continue
 
+        # Store Valid Record
         record = {
             "Date": date,
             "Product": product,
@@ -75,54 +83,26 @@ def get_sales_data():
 
         record_key = tuple(record[col] for col in COLUMNS)
 
+        # Check Duplicate
         if record_key in seen_records:
             print(f"Row {i} skipped: Duplicate record")
-            i += 1
             continue
 
         seen_records.add(record_key)
         records.append(record)
-        i += 1
 
     return pd.DataFrame(records, columns=COLUMNS)
 
 
-# 2. Select Number of Rows
-def choose_rows(df):
-    if df.empty:
-        print("\nNo valid sales data available.")
-        return df
-
-    while True:
-        choice = input(
-            "\nEnter number of rows to analyze "
-            "(Press Enter for all rows): "
-        ).strip()
-
-        if choice == "":
-            return df
-
-        try:
-            count = int(choice)
-
-            if count <= 0:
-                print("Enter a number greater than 0.")
-            elif count > len(df):
-                print(f"Only {len(df)} valid rows are available.")
-            else:
-                return df.head(count)
-
-        except ValueError:
-            print("Please enter a valid whole number.")
-
-
-# 3. Best Selling Product
+# 2. Best Selling Product
 def best_selling_product(df):
+
     if df.empty:
         print("\nNo sales data available.")
         return
 
     product_sales = df.groupby("Product")["Quantity"].sum()
+
     highest_sales = product_sales.max()
 
     best_products = product_sales[
@@ -136,8 +116,9 @@ def best_selling_product(df):
         print(f"Total Quantity Sold: {quantity}")
 
 
-# 4. Sales Summary
+# 3. Sales Summary
 def sales_summary(df):
+
     if df.empty:
         print("\nNo valid sales data available.")
         return
@@ -146,28 +127,37 @@ def sales_summary(df):
     transactions = len(df)
 
     print("\n--- SALES SUMMARY ---")
+
     print(f"Total Revenue: {total_revenue:g}")
     print(f"Transactions: {transactions}")
     print(f"Total Units Sold: {df['Quantity'].sum()}")
 
+    # Display Best Selling Product
     best_selling_product(df)
 
 
-# 5. Group Analysis
+# 4. Group Analysis
 def group_analysis(df):
+
     if df.empty:
         print("\nNo valid sales data available.")
         return
 
-    print("\n--- Sales by Product ---")
+    # Sales by Product
+    print("\n--- SALES BY PRODUCT ---")
+
     product_sales = df.groupby("Product")["Amount"].sum()
     print(product_sales)
 
-    print("\n--- Sales by Region ---")
+    # Sales by Region
+    print("\n--- SALES BY REGION ---")
+
     region_sales = df.groupby("Region")["Amount"].sum()
     print(region_sales)
 
-    print("\n--- Product and Region Analysis ---")
+    # Product and Region Analysis
+    print("\n--- PRODUCT AND REGION ANALYSIS ---")
+
     pivot = pd.pivot_table(
         df,
         values="Amount",
@@ -176,6 +166,7 @@ def group_analysis(df):
         aggfunc="sum",
         fill_value=0
     )
+
     print(pivot)
 
     # Product Sales Chart
@@ -183,6 +174,7 @@ def group_analysis(df):
         kind="bar",
         title="Revenue by Product"
     )
+
     plt.xlabel("Product")
     plt.ylabel("Revenue")
     plt.tight_layout()
@@ -193,21 +185,25 @@ def group_analysis(df):
         kind="bar",
         title="Revenue by Region"
     )
+
     plt.xlabel("Region")
     plt.ylabel("Revenue")
     plt.tight_layout()
     plt.show()
 
 
-# 6. Main Menu
+# 5. Main Menu
 def main():
+
     print("================================")
     print("       SALES DATA ANALYZER")
     print("================================")
 
+    # Enter Sales Data
     df = get_sales_data()
 
     while True:
+
         print("\n========== MAIN MENU ==========")
         print("1. Sales Summary")
         print("2. Group by Product and Region")
@@ -217,14 +213,17 @@ def main():
         choice = input("\nEnter your choice: ").strip()
 
         if choice == "1":
-            selected_df = choose_rows(df)
-            sales_summary(selected_df)
+
+            # Automatically Analyze All Valid Rows
+            sales_summary(df)
 
         elif choice == "2":
-            selected_df = choose_rows(df)
-            group_analysis(selected_df)
+
+            # Automatically Analyze All Valid Rows
+            group_analysis(df)
 
         elif choice == "3":
+
             new_data = get_sales_data()
 
             if not new_data.empty:
@@ -234,12 +233,15 @@ def main():
                 ).drop_duplicates()
 
         elif choice == "4":
+
             print("\nThank you for using Sales Data Analyzer!")
             break
 
         else:
+
             print("\nInvalid choice. Please select 1 to 4.")
 
 
+# Run Program
 if __name__ == "__main__":
     main()
